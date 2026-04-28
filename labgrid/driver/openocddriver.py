@@ -1,4 +1,5 @@
 from itertools import chain
+from string import Formatter
 import attr
 
 from ..factory import target_factory
@@ -77,22 +78,72 @@ class OpenOCDDriver(Driver, BootstrapProtocol):
         cmd += chain.from_iterable(("--command", f"{command}") for command in commands)
         processwrapper.check_output(self.interface.wrap_command(cmd), print_on_silent_log=True)
 
+    def _resolve_load_commands(self, filename):
+        formatter = Formatter()
+        placeholders = []
+        for command in self.load_commands:
+            for _, field_name, _, _ in formatter.parse(command):
+                if field_name and field_name not in placeholders:
+                    placeholders.append(field_name)
+
+        if not placeholders:
+            return self.load_commands
+
+        if not self.target.env:
+            raise ValueError("OpenOCDDriver load command placeholders require an environment configuration")
+
+        filenames = []
+        if isinstance(filename, list):
+            filenames = filename
+            filename = filename[0] if filename else None
+
+        paths = {}
+        if "filename" in placeholders:
+            if filename is None:
+                if self.image is None:
+                    raise ValueError("no bootstrap filename provided and no default image configured")
+                filename = self.target.env.config.get_image_path(self.image)
+            paths["filename"] = filename
+
+        for placeholder in placeholders:
+            if placeholder == "filename":
+                continue
+            if placeholder.startswith("filename") and placeholder[8:].isdigit():
+                index = int(placeholder[8:])
+                try:
+                    paths[placeholder] = filenames[index]
+                except IndexError as exc:
+                    raise ValueError(f"missing bootstrap filename for placeholder '{placeholder}'") from exc
+                continue
+            paths[placeholder] = self.target.env.config.get_image_path(placeholder)
+
+        remote_paths = {}
+        for placeholder, path in paths.items():
+            mf = ManagedFile(path, self.interface)
+            mf.sync_to_resource()
+            remote_paths[placeholder] = mf.get_remote_path()
+
+        return [command.format(**remote_paths) for command in self.load_commands]
+
     @Driver.check_active
     @step(args=["filename"])
     def load(self, filename=None):
-        if filename is None and self.image is not None:
-            filename = self.target.env.config.get_image_path(self.image)
-        mf = ManagedFile(filename, self.interface)
-        mf.sync_to_resource()
-
         if self.load_commands is None:
+            if isinstance(filename, list):
+                if len(filename) > 1:
+                    raise ValueError("OpenOCDDriver default bootstrap sequence supports only a single filename")
+                filename = filename[0] if filename else None
+            if filename is None and self.image is not None:
+                filename = self.target.env.config.get_image_path(self.image)
+            mf = ManagedFile(filename, self.interface)
+            mf.sync_to_resource()
             commands = [
                 "init",
                 f"bootstrap {mf.get_remote_path()}",
                 "shutdown",
             ]
         else:
-            commands = [c.format(filename=mf.get_remote_path()) for c in self.load_commands]
+            commands = self._resolve_load_commands(filename)
 
         self._run_commands(commands)
 

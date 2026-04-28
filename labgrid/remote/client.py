@@ -1208,7 +1208,13 @@ class ClientSession:
         if not drv:
             raise UserError("target has no compatible resource available")
         target.activate(drv)
-        drv.load(self.args.filename)
+        filenames = self.args.filename
+        if len(filenames) == 1:
+            drv.load(filenames[0])
+        else:
+            if not isinstance(drv, OpenOCDDriver):
+                raise UserError("multiple bootstrap filenames are only supported by OpenOCDDriver")
+            drv.load(filenames)
 
     def sd_mux(self):
         place = self.get_acquired_place()
@@ -2027,7 +2033,7 @@ def get_parser(auto_doc_mode=False) -> "argparse.ArgumentParser | AutoProgramArg
 
     subparser = subparsers.add_parser("bootstrap", help="start a bootloader")
     subparser.add_argument("-w", "--wait", type=float, default=10.0)
-    subparser.add_argument("filename", help="filename to boot on the target")
+    subparser.add_argument("filename", nargs="+", help="filename(s) to boot on the target")
     subparser.add_argument("bootstrap_args", metavar="ARG", nargs=argparse.REMAINDER, help="extra bootstrap arguments")
     subparser.add_argument("--name", "-n", help="optional resource name")
     subparser.set_defaults(func=ClientSession.bootstrap)

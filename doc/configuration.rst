@@ -2323,7 +2323,7 @@ Arguments:
   - image (str): optional, name of the image to bootstrap onto the device
   - interface_config (str): optional, interface config in the ``openocd/scripts/interface/`` directory
   - board_config (str): optional, board config in the ``openocd/scripts/board/`` directory
-  - load_commands (list of str): optional, load commands to use instead of ``init``, ``bootstrap {filename}``, ``shutdown``
+  - load_commands (list of str): optional, load commands to use instead of ``init``, ``bootstrap {filename}``, ``shutdown``. Commands may omit file placeholders entirely, use ``{filename}`` for the explicit/default bootstrap image, use ``{filename1}``, ``{filename2}``, ... for additional filenames passed on the command line, or reference configured images by name as ``{image_name}``.
 
 QuartusHPSDriver
 ~~~~~~~~~~~~~~~~

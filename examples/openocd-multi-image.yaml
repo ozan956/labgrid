@@ -1,0 +1,16 @@
+targets:
+  main:
+    resources:
+      RemotePlace:
+        name: "my-place"
+    drivers:
+      NetworkPowerDriver:
+        name: "power"
+      SerialDriver:
+        name: "serial"
+      OpenOCDDriver:
+        load_commands:
+          - "source [find interface/ice1000.cfg]"
+          - "source [find target/adspsc57x.cfg]"
+          - 'set BOOT_SEQ {{ {{ {filename} board_init_r }} {{ {filename1} "" }} }}'
+          - "source [find tools/boot.tcl]"
