@@ -1171,6 +1171,13 @@ class ClientSession:
         place = self.get_acquired_place()
         target = self._get_target(place)
         name = self.args.name
+        filenames = []
+        bootstrap_args = []
+        for argument in self.args.arguments:
+            if "=" in argument:
+                bootstrap_args.append(argument)
+            else:
+                filenames.append(argument)
         from ..resource.remote import (
             NetworkMXSUSBLoader,
             NetworkIMXUSBLoader,
@@ -1193,7 +1200,7 @@ class ClientSession:
                     drv = self._get_driver_or_new(target, "MXSUSBDriver", activate=False, name=name)
                     drv.loader.timeout = self.args.wait
                 elif isinstance(resource, NetworkAlteraUSBBlaster):
-                    args = dict(arg.split("=", 1) for arg in self.args.bootstrap_args)
+                    args = dict(arg.split("=", 1) for arg in bootstrap_args)
                     try:
                         drv = target.get_driver("OpenOCDDriver", activate=False, name=name)
                     except NoDriverFoundError:
@@ -1208,7 +1215,16 @@ class ClientSession:
         if not drv:
             raise UserError("target has no compatible resource available")
         target.activate(drv)
-        drv.load(self.args.filename)
+
+        if len(filenames) != 1 and not isinstance(drv, OpenOCDDriver):
+            raise UserError("zero or multiple files are only supported by OpenOCDDriver")
+        if not filenames:
+            if not drv.config:
+                raise UserError("bootstrapping without a file requires an OpenOCD config")
+            drv.execute([])
+            return
+        for filename in filenames:
+            drv.load(filename)
 
     def sd_mux(self):
         place = self.get_acquired_place()
@@ -2027,8 +2043,8 @@ def get_parser(auto_doc_mode=False) -> "argparse.ArgumentParser | AutoProgramArg
 
     subparser = subparsers.add_parser("bootstrap", help="start a bootloader")
     subparser.add_argument("-w", "--wait", type=float, default=10.0)
-    subparser.add_argument("filename", help="filename to boot on the target")
-    subparser.add_argument("bootstrap_args", metavar="ARG", nargs=argparse.REMAINDER, help="extra bootstrap arguments")
+    subparser.add_argument("arguments", metavar="FILE", nargs=argparse.REMAINDER,
+                           help="filename(s) to boot on the target and optional key=value arguments")
     subparser.add_argument("--name", "-n", help="optional resource name")
     subparser.set_defaults(func=ClientSession.bootstrap)
 
