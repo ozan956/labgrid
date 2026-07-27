@@ -5,6 +5,22 @@ import time
 import pytest
 import pexpect
 
+from labgrid.remote.client import get_parser
+
+
+def test_bootstrap_accepts_optional_and_multiple_files():
+    parser = get_parser()
+
+    args = parser.parse_args(["bootstrap"])
+    assert args.arguments == []
+
+    args = parser.parse_args(["bootstrap", "first.elf", "second.elf", "third.elf"])
+    assert args.arguments == ["first.elf", "second.elf", "third.elf"]
+
+    args = parser.parse_args(["bootstrap", "first.elf", "config=board.cfg"])
+    assert args.arguments == ["first.elf", "config=board.cfg"]
+
+
 def test_startup(coordinator):
     pass
 
