@@ -171,6 +171,11 @@ Currently available are:
   HTTPS queries intentially ignore ssl certificate validation, since
   the as-shipped certificate is self-signed.
 
+``dingtian``
+  Controls *Dingtian DT-R00x Ethernet relay boards* via their HTTP GET CGI
+  protocol. The "HTTP GET CGI" protocol must be enabled for the relay channel
+  in the board's web configuration.
+
 ``eaton``
   Controls *Eaton ePDUs* via SNMP.
 
