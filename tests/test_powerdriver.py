@@ -285,6 +285,7 @@ class TestNetworkPowerDriver:
         import labgrid.driver.power
         import labgrid.driver.power.apc
         import labgrid.driver.power.digipower
+        import labgrid.driver.power.dingtian
         import labgrid.driver.power.digitalloggers_http
         import labgrid.driver.power.digitalloggers_restapi
         import labgrid.driver.power.eth008
@@ -400,3 +401,125 @@ class TestPoeNetgearPlusPowerDriver:
     def test_get_hostname_and_pw_non_http_raises(self):
         with pytest.raises(ExecutionError, match="URL must start with http://"):
             _get_hostname_and_password("no_http_protocol")
+
+
+class TestDingtianPowerBackend:
+    HOST = "192.168.1.100"
+    PORT = 80
+
+    def _response(self, mocker, text):
+        response = mocker.MagicMock()
+        response.text = text
+        return response
+
+    def test_power_set_on_sends_correct_request(self, mocker):
+        from labgrid.driver.power import dingtian
+
+        get = mocker.patch("requests.get")
+        get.return_value = self._response(mocker, "&0&0&3&1&0&")
+
+        dingtian.power_set(self.HOST, self.PORT, 4, True)
+
+        get.assert_called_once_with(
+            f"http://{self.HOST}:{self.PORT}/relay_cgi.cgi"
+            "?type=0&relay=3&on=1&time=0&pwd=0&"
+        )
+
+    def test_power_set_off_sends_correct_request(self, mocker):
+        from labgrid.driver.power import dingtian
+
+        get = mocker.patch("requests.get")
+        get.return_value = self._response(mocker, "&0&0&1&0&0&")
+
+        dingtian.power_set(self.HOST, self.PORT, 2, False)
+
+        get.assert_called_once_with(
+            f"http://{self.HOST}:{self.PORT}/relay_cgi.cgi"
+            "?type=0&relay=1&on=0&time=0&pwd=0&"
+        )
+
+    def test_power_set_rejects_out_of_range_index(self, mocker):
+        from labgrid.driver.power import dingtian
+
+        mocker.patch("requests.get")
+
+        with pytest.raises(AssertionError):
+            dingtian.power_set(self.HOST, self.PORT, 33, True)
+
+    def test_power_set_raises_on_error_result(self, mocker):
+        from labgrid.driver.power import dingtian
+
+        get = mocker.patch("requests.get")
+        get.return_value = self._response(mocker, "&302&/&")
+
+        with pytest.raises(ExecutionError):
+            dingtian.power_set(self.HOST, self.PORT, 1, True)
+
+    def test_power_set_raises_when_state_not_reached(self, mocker):
+        from labgrid.driver.power import dingtian
+
+        get = mocker.patch("requests.get")
+        get.return_value = self._response(mocker, "&0&0&0&0&0&")
+
+        with pytest.raises(ExecutionError):
+            dingtian.power_set(self.HOST, self.PORT, 1, True)
+
+    def test_power_get_returns_true_when_relay_on(self, mocker):
+        from labgrid.driver.power import dingtian
+
+        get = mocker.patch("requests.get")
+        get.return_value = self._response(mocker, "&0&4&0&0&1&0&")
+
+        assert dingtian.power_get(self.HOST, self.PORT, 3) is True
+        get.assert_called_once_with(
+            f"http://{self.HOST}:{self.PORT}/relay_cgi_load.cgi"
+        )
+
+    def test_power_get_returns_false_when_relay_off(self, mocker):
+        from labgrid.driver.power import dingtian
+
+        get = mocker.patch("requests.get")
+        get.return_value = self._response(mocker, "&0&4&0&0&1&0&")
+
+        assert dingtian.power_get(self.HOST, self.PORT, 1) is False
+
+    def test_power_get_raises_on_error_result(self, mocker):
+        from labgrid.driver.power import dingtian
+
+        get = mocker.patch("requests.get")
+        get.return_value = self._response(mocker, "&302&/&")
+
+        with pytest.raises(ExecutionError):
+            dingtian.power_get(self.HOST, self.PORT, 1)
+
+    def test_power_get_raises_when_index_beyond_relay_count(self, mocker):
+        from labgrid.driver.power import dingtian
+
+        get = mocker.patch("requests.get")
+        get.return_value = self._response(mocker, "&0&4&0&0&0&0&")
+
+        with pytest.raises(ExecutionError):
+            dingtian.power_get(self.HOST, self.PORT, 5)
+
+    def test_power_set_multi_digit_index(self, mocker):
+        from labgrid.driver.power import dingtian
+
+        get = mocker.patch("requests.get")
+        get.return_value = self._response(mocker, "&0&0&11&1&0&")
+
+        dingtian.power_set(self.HOST, self.PORT, 12, True)
+
+        get.assert_called_once_with(
+            f"http://{self.HOST}:{self.PORT}/relay_cgi.cgi"
+            "?type=0&relay=11&on=1&time=0&pwd=0&"
+        )
+
+    def test_power_get_multi_digit_index(self, mocker):
+        from labgrid.driver.power import dingtian
+
+        get = mocker.patch("requests.get")
+        get.return_value = self._response(
+            mocker, "&0&12&0&0&0&0&0&0&0&0&0&0&0&1&"
+        )
+
+        assert dingtian.power_get(self.HOST, self.PORT, 12) is True
