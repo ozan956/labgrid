@@ -10,6 +10,7 @@ from .fastbootdriver import AndroidFastbootDriver
 from .dfudriver import DFUDriver
 from .openocddriver import OpenOCDDriver
 from .quartushpsdriver import QuartusHPSDriver
+from .xsdbdriver import XSDBDriver
 from .flashromdriver import FlashromDriver
 from .onewiredriver import OneWirePIODriver
 from .powerdriver import ManualPowerDriver, ExternalPowerDriver, \

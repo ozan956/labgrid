@@ -228,6 +228,7 @@ include = [
   "labgrid/driver/power/poe_netgear_plus.py",
   "labgrid/driver/power/shelly_gen2.py",
   "labgrid/driver/rawnetworkinterfacedriver.py",
+  "labgrid/driver/xsdbdriver.py",
   "labgrid/protocol/**/*.py",
   "labgrid/remote/**/*.py",
   "labgrid/resource/httpvideostream.py",
