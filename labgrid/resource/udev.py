@@ -927,11 +927,13 @@ class USBDebugger(USBResource):
                          ("064b", "0617"),  # Analog Devices ICE-1000 Emulator
                          ("064b", "2500"),  # Analog Devices ICE-1500 Emulator
                          ("064b", "0283"),  # Analog Devices ICE-2000 Emulator
-                         ("064b", "2503"),  # Analog Devices Onboard Debug Agent
-                         ("064b", "2504"),  # Analog Devices Onboard Debug Agent
-                         ("064b", "2507"),  # Analog Devices Onboard Debug Agent
-                         ("064b", "2508"),  # Analog Devices Onboard Debug Agent
-                         ("064b", "250A"),  # Analog Devices Onboard Debug Agent
+                         ("064b", "2503"),  # ADSP-SC594W Onboard Debug Agent
+                         ("064b", "2504"),  # ADSP-SC598 Onboard Debug Agent
+                         ("064b", "2507"),  # ADSP-SC839W Onboard Debug Agent
+                         ("064b", "2508"),  # ADSP-21835W Onboard Debug Agent
+                         ("064b", "250a"),  # ADSP-SC835W Onboard Debug Agent
+                         ("064b", "250c"),  # Analog Devices Multi-Processor Onboard Debug Agent
+                         ("064b", "250d"),  # ADSP-SC846W Onboard Debug Agent
                          ]:
             return False
 
